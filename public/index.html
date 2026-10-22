@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c111a">
+  <title>Events • Stellar DevGuard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Primary">
+      <a href="/" class="brand"><span class="brand-mark" aria-hidden="true">D<span></span></span><span><strong>DEVGUARD</strong><small>STELLAR TOOLING</small></span></a>
+      <div class="nav-heading">WORKSPACE</div>
+      <nav aria-label="Dashboard"><a class="nav-link selected" href="/" aria-current="page"><span class="nav-glyph">⌁</span> Event explorer</a></nav>
+      <div class="sidebar-bottom"><div class="note-title">OPEN SOURCE INFRASTRUCTURE</div><p>Inspect stored Soroban contract events without connecting a wallet.</p><a href="https://github.com/Stellar-DevGuard/devguard-dashboard" target="_blank" rel="noopener noreferrer" class="github-link">View on GitHub ↗</a></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><span>DEVELOPER CONSOLE <span class="crumb">/</span> EVENT EXPLORER</span><span class="environment"><span class="dot" id="health-dot"></span><span id="health-label">Checking monitor</span></span></header>
+      <div class="content">
+        <div class="heading"><div><div class="eyebrow">MONITORING / EVENTS</div><h1>Contract event explorer<span class="highlight">.</span></h1><p class="subtitle">Search indexed Soroban activity by contract. Results are retrieved directly from your DevGuard Monitor database.</p></div><span class="read-only">READ-ONLY ACCESS</span></div>
+        <section class="panel search-panel" aria-labelledby="search-title">
+          <div class="panel-heading"><span class="section-label" id="search-title">01 / FILTER EVENTS</span><span class="panel-detail">NETWORK + CONTRACT</span></div>
+          <form id="search-form" novalidate>
+            <div class="form-grid">
+              <label class="field network"><span>Network</span><select id="network" name="network"><option value="testnet">Testnet</option><option value="mainnet">Mainnet</option></select></label>
+              <label class="field contract"><span>Contract ID</span><input id="contract" name="contract" spellcheck="false" autocomplete="off" placeholder="C... (56 characters)" maxlength="56" required></label>
+              <label class="field page-size"><span>Page size</span><select id="limit" name="limit"><option value="25">25 events</option><option value="50">50 events</option><option value="100">100 events</option></select></label>
+            </div>
+            <div class="form-bottom"><span>Only events previously collected by Monitor will appear.</span><button type="submit" id="search-button">Fetch events <span aria-hidden="true">↗</span></button></div>
+          </form>
+        </section>
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+        <section class="panel results" aria-labelledby="results-title">
+          <div class="panel-heading"><span class="section-label" id="results-title">02 / INDEXED EVENTS</span><div class="results-meta"><span id="result-count">No query</span><span class="meta-separator">/</span><span id="result-network">—</span></div></div>
+          <div id="empty-state" class="empty"><div class="empty-graphic" aria-hidden="true"><span></span><span></span><span></span></div><h2>Waiting for a contract</h2><p>Choose a network and enter a Soroban contract ID to inspect persisted events.</p></div>
+          <div id="table-wrap" class="table-wrap" hidden><table><thead><tr><th>Event ID</th><th>Ledger</th><th>Type</th><th>Transaction</th><th>Closed at</th><th></th></tr></thead><tbody id="event-rows"></tbody></table></div>
+          <div class="pagination"><span id="page-label">No results loaded</span><button id="next-button" disabled>Next page <span aria-hidden="true">→</span></button></div>
+        </section>
+        <footer>STELLAR DEVGUARD <span>•</span> Community maintained, not affiliated with SDF <span>•</span> On-chain data is subject to indexer retention</footer>
+      </div>
+    </main>
+  </div>
+  <dialog id="details"><div class="dialog-head"><div><div class="eyebrow">EVENT DETAIL</div><h2>Raw event data</h2></div><button id="close-details" class="close-button" aria-label="Close details">✕</button></div><p>The raw payload is stored by DevGuard Monitor. Base64-encoded XDR values are not decoded.</p><pre id="details-json"></pre></dialog>
+</body>
+</html>
