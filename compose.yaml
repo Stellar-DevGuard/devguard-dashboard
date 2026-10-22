@@ -1,0 +1,53 @@
+name: stellar-devguard
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: devguard
+      POSTGRES_USER: devguard
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devguard -d devguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  monitor:
+    build:
+      context: ../devguard-monitor
+    environment:
+      DATABASE_URL: postgresql://devguard:${DB_PASSWORD:?Set DB_PASSWORD}@postgres:5432/devguard
+      STELLAR_RPC_URL: ${STELLAR_RPC_URL:-https://soroban-testnet.stellar.org}
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-testnet}
+      CONTRACT_ID: ${CONTRACT_ID:?Set CONTRACT_ID}
+      START_LEDGER: ${START_LEDGER:?Set START_LEDGER}
+      PAGE_SIZE: 100
+      POLL_INTERVAL_MS: 5000
+      API_HOST: 127.0.0.1
+      API_PORT: 4100
+      MIGRATE_ON_START: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+  dashboard:
+    build:
+      context: .
+    network_mode: "service:monitor"
+    environment:
+      MONITOR_API_URL: http://127.0.0.1:4100
+      HOST: 0.0.0.0
+      PORT: 3000
+      ALLOW_EXTERNAL_BINDING: "true"
+      DASHBOARD_AUTH_USER: ${DASHBOARD_AUTH_USER:?Set DASHBOARD_AUTH_USER}
+      DASHBOARD_AUTH_PASSWORD: ${DASHBOARD_AUTH_PASSWORD:?Set DASHBOARD_AUTH_PASSWORD}
+    depends_on:
+      monitor:
+        condition: service_started
+    restart: unless-stopped
+volumes:
+  postgres_data:
