@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+coverage
+.env
+.env.*
+!.env.compose.example
+test
+integration
+docs
