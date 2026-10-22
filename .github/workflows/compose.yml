@@ -1,0 +1,32 @@
+name: Validate Local Stack
+on:
+  pull_request:
+    paths:
+      - compose.yaml
+      - .env.compose.example
+      - Dockerfile
+      - .github/workflows/compose.yml
+  push:
+    branches: [main]
+    paths:
+      - compose.yaml
+      - .env.compose.example
+      - Dockerfile
+      - .github/workflows/compose.yml
+permissions:
+  contents: read
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: devguard-dashboard
+      - uses: actions/checkout@v4
+        with:
+          repository: Stellar-DevGuard/devguard-monitor
+          ref: 0c1bc280b0f122b4db481fe2c59d32f3e09cbb48
+          path: devguard-monitor
+      - name: Validate compose configuration
+        working-directory: devguard-dashboard
+        run: docker compose --env-file .env.compose.example config --quiet
