@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
@@ -20,6 +21,17 @@ export function parseMonitorUrl(input) {
   return url.origin;
 }
 
+function authorized(header, user, password) {
+  if (user === undefined && password === undefined) return true;
+  if (typeof header !== 'string' || !/^Basic [A-Za-z0-9+/]+={0,2}$/.test(header)) return false;
+  const token = header.slice(6);
+  const supplied = Buffer.from(token, 'base64');
+  if (supplied.toString('base64') !== token) return false;
+  const expected = createHash('sha256').update(user + ':' + password).digest();
+  const actual = createHash('sha256').update(supplied).digest();
+  return timingSafeEqual(expected, actual);
+}
+
 function json(res, code, data) {
   const body = JSON.stringify(data);
   res.writeHead(code, {
@@ -35,10 +47,25 @@ export function createDashboardServer({
   monitorUrl = 'http://127.0.0.1:4100',
   fetchImpl = globalThis.fetch,
   assetLoader = readFile,
-  logger = console
+  logger = console,
+  authUser,
+  authPassword
 } = {}) {
   const origin = parseMonitorUrl(monitorUrl);
+  if ((authUser === undefined) !== (authPassword === undefined) ||
+      (authUser !== undefined && (typeof authUser !== 'string' || !authUser ||
+        typeof authPassword !== 'string' || authPassword.length < 12 || authUser.includes(':')))) {
+    throw new TypeError('Provide both authUser and authPassword (at least 12 characters), or neither');
+  }
   return createServer(async (req, res) => {
+    if (!authorized(req.headers.authorization, authUser, authPassword)) {
+      res.writeHead(401, {
+        'www-authenticate': 'Basic realm="DevGuard Dashboard", charset="UTF-8"',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff'
+      });
+      return res.end('Authentication required');
+    }
     if (req.method !== 'GET') return json(res, 405, { error: 'Method not allowed' });
     let url;
     try { url = new URL(req.url, 'http://localhost'); }
@@ -91,6 +118,15 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const port = Number(process.env.PORT || 3000);
   const host = process.env.HOST || '127.0.0.1';
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be 1..65535');
-  const app = createDashboardServer({ monitorUrl: process.env.MONITOR_API_URL || 'http://127.0.0.1:4100' });
+  const authUser = process.env.DASHBOARD_AUTH_USER;
+  const authPassword = process.env.DASHBOARD_AUTH_PASSWORD;
+  if (host !== '127.0.0.1' && host !== '::1' &&
+      !(process.env.ALLOW_EXTERNAL_BINDING === 'true' && authUser && authPassword)) {
+    throw new Error('Non-loopback hosting requires ALLOW_EXTERNAL_BINDING=true and dashboard authentication');
+  }
+  const app = createDashboardServer({
+    monitorUrl: process.env.MONITOR_API_URL || 'http://127.0.0.1:4100',
+    authUser, authPassword
+  });
   app.listen(port, host, () => console.log(`DevGuard Dashboard listening on http://${host}:${port}`));
 }
