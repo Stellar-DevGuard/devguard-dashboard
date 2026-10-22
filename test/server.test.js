@@ -86,3 +86,31 @@ test('rejects disallowed methods, static path queries and proxy health queries',
     assert.equal((await fetch(base + '/api/health?foo=1')).status, 400);
   });
 });
+
+test('authenticated dashboard rejects anonymous and incorrect credentials on all routes', async () => {
+  const authUser = 'operator';
+  const authPassword = 'complex-secret-for-test';
+  const server = createDashboardServer({
+    authUser, authPassword,
+    fetchImpl: async () => jsonResponse({ status: 'ok' })
+  });
+  await withServer(server, async base => {
+    for (const path of ['/', '/app.js', '/api/health', '/api/events']) {
+      const response = await fetch(base + path);
+      assert.equal(response.status, 401);
+      assert.match(response.headers.get('www-authenticate'), /Basic/);
+    }
+    const bad = await fetch(base + '/', {
+      headers: { authorization: 'Basic ' + Buffer.from('operator:incorrect').toString('base64') }
+    });
+    assert.equal(bad.status, 401);
+    const headers = { authorization: 'Basic ' + Buffer.from(authUser + ':' + authPassword).toString('base64') };
+    assert.equal((await fetch(base + '/', { headers })).status, 200);
+    assert.equal((await fetch(base + '/api/health', { headers })).status, 200);
+  });
+});
+test('rejects incomplete or weak authentication configuration', () => {
+  assert.throws(() => createDashboardServer({ authUser: 'test' }), /both authUser/);
+  assert.throws(() => createDashboardServer({ authUser: 'test', authPassword: 'short' }), /12 characters/);
+  assert.throws(() => createDashboardServer({ authUser: 'invalid:user', authPassword: 'this-is-long-enough' }), /both authUser/);
+});
