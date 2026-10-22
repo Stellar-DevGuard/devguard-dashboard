@@ -25,6 +25,20 @@ MONITOR_API_URL=http://127.0.0.1:4100 npm start
 
 Open `http://127.0.0.1:3000`. Set `PORT` and `HOST` as necessary. The default host is **127.0.0.1** (loopback only). Do **not** deploy publicly without an authenticating gateway, TLS termination, CSRF/origin review, rate limits and access controls.
 
+## Optional dashboard authentication
+
+By default the dashboard binds only to loopback and does not require credentials. For shared or proxied deployments, set both environment variables:
+
+```bash
+export DASHBOARD_AUTH_USER='operator'
+export DASHBOARD_AUTH_PASSWORD='use-a-long-random-secret-here'
+HOST=127.0.0.1 npm start
+```
+
+Every page, asset, and proxied API route then requires HTTP Basic authentication. Passwords must be at least 12 characters. Use an **HTTPS-terminating reverse proxy** if anyone accesses the dashboard remotely: Basic credentials are not encrypted by HTTP itself. Never put credentials in source control or URLs.
+
+Non-loopback binding is refused unless `ALLOW_EXTERNAL_BINDING=true` and both authentication settings are present. This is an intentional configuration safeguard, not a replacement for TLS, an ingress firewall, access logs, or stronger identity management.
+
 ## Features
 
 - Monitor health and connectivity feedback.
